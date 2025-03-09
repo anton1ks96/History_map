@@ -1,5 +1,5 @@
 import './App.css'
-import MapComponent from './Map.jsx';
+import MapComponent from './VideoScroller.jsx';
 
 function App() {
     return (
