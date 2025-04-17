@@ -1,124 +1,188 @@
-import React, {useState, useEffect, useRef, useCallback, } from 'react';
+import React, {
+    useState,
+    useEffect,
+    useRef,
+    useCallback,
+    useMemo,
+} from 'react';
 import videosData from '/public/videos.json';
 
-const minRate = 0.25;
-const maxRate = 3;
-const rateStep = 0.03;
-const rateSmooth = 0.05;
-const idleTimeout = 5000;
-const wheelThreshold = 40;
-const wheelCooldown = 200;
+const FAST_RATE = 4;
+const RAMP_MS = 300;
+const END_SLOW_WINDOW = 2;
+const WHEEL_COOLDOWN = 200;
+const REWIND_INTERVAL_MS = 40;
+const REWIND_STEP_SEC = 0.25;
 
 export default function VideoScroller() {
-    const sortedVideos = videosData.sort((a, b) => a.priority - b.priority);
+    const sortedVideos = useMemo(
+        () => videosData.sort((a, b) => a.priority - b.priority),
+        []
+    );
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [realRemaining, setRealRemaining] = useState(sortedVideos[0].time);
+
     const videoRef = useRef(null);
-    const targetRate = useRef(1);
-    const idleTimer = useRef(null);
-    const lastWheelAt = useRef(0);
+    const [remainingTime, setRemainingTime] = useState(
+        sortedVideos[0]?.time ?? 0
+    );
 
-    const onWheel = useCallback((e) => {
-        const now = Date.now();
-        if (now - lastWheelAt.current < wheelCooldown) return;
+    const modeRef = useRef('idle');
+    const nearEndCheckRef = useRef(null);
+    const rewindTimerRef = useRef(null);
+    const lastWheelTs = useRef(0);
+    const rAF = useRef(null);
 
-        if (Math.abs(e.deltaY) < wheelThreshold) return;
+    const animateRate = useCallback((from, to, duration, onDone) => {
+        if (!videoRef.current) return;
+        const t0 = performance.now();
+        const easeInOut = (t) => (t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t);
 
-        lastWheelAt.current = now;
+        const step = (now) => {
+            const p = Math.min(1, (now - t0) / duration);
+            const rate = from + (to - from) * easeInOut(p);
+            videoRef.current.playbackRate = rate;
+            if (p < 1) {
+                rAF.current = requestAnimationFrame(step);
+            } else if (onDone) {
+                onDone();
+            }
+        };
+        rAF.current = requestAnimationFrame(step);
+    }, []);
 
-        if (idleTimer.current) clearTimeout(idleTimer.current);
-
-        if (e.deltaY < 0) {
-            targetRate.current = Math.min(maxRate, targetRate.current + rateStep);
-        } else {
-            targetRate.current = Math.max(minRate, targetRate.current - rateStep);
+    const clearAllTimers = useCallback(() => {
+        if (nearEndCheckRef.current) {
+            clearInterval(nearEndCheckRef.current);
+            nearEndCheckRef.current = null;
         }
-
-        idleTimer.current = setTimeout(() => {
-            targetRate.current = 1;
-        }, idleTimeout);
+        if (rewindTimerRef.current) {
+            clearInterval(rewindTimerRef.current);
+            rewindTimerRef.current = null;
+        }
+        if (rAF.current) {
+            cancelAnimationFrame(rAF.current);
+            rAF.current = null;
+        }
     }, []);
 
-    useEffect(() => {
-        let raf;
-        const smoothStep = () => {
-            const v = videoRef.current;
-            if (v) {
-                const diff = targetRate.current - v.playbackRate;
-                if (Math.abs(diff) > 0.01) {
-                    v.playbackRate += diff * rateSmooth;
+    const startFastForward = useCallback(() => {
+        if (!videoRef.current) return;
+        clearAllTimers();
+        modeRef.current = 'fastForward';
+
+        const from = videoRef.current.playbackRate;
+        animateRate(from, FAST_RATE, RAMP_MS);
+
+        nearEndCheckRef.current = setInterval(() => {
+            const vid = videoRef.current;
+            if (!vid) return;
+            const remaining = vid.duration - vid.currentTime;
+            if (remaining <= END_SLOW_WINDOW) {
+                clearInterval(nearEndCheckRef.current);
+                nearEndCheckRef.current = null;
+                animateRate(FAST_RATE, 1, RAMP_MS, () => {
+                    modeRef.current = 'idle';
+                });
+            }
+        }, 200);
+    }, [animateRate, clearAllTimers]);
+
+    const startRewind = useCallback(() => {
+        if (!videoRef.current) return;
+        clearAllTimers();
+        modeRef.current = 'rewind';
+
+        const vid = videoRef.current;
+        vid.pause();
+
+        let ticks = 0;
+        rewindTimerRef.current = setInterval(() => {
+            const dynamicStep =
+                ticks < 15 ? (REWIND_STEP_SEC * (ticks / 15)) : REWIND_STEP_SEC;
+            const step = dynamicStep * (FAST_RATE / 2);
+            vid.currentTime = Math.max(vid.currentTime - step, 0);
+            setRemainingTime(vid.duration - vid.currentTime);
+            ticks += 1;
+
+            if (vid.currentTime <= 0.05) {
+                clearInterval(rewindTimerRef.current);
+                rewindTimerRef.current = null;
+                if (currentIndex > 0) {
+                    const prev = currentIndex - 1;
+                    setCurrentIndex(prev);
+                    setRemainingTime(sortedVideos[prev].time);
+                } else {
+                    vid.currentTime = 0;
+                    vid.playbackRate = 1;
+                    vid.play().catch(() => {});
                 }
+                modeRef.current = 'idle';
             }
-            raf = requestAnimationFrame(smoothStep);
+        }, REWIND_INTERVAL_MS);
+    }, [clearAllTimers, currentIndex, sortedVideos]);
+
+    useEffect(() => {
+        const onWheel = (e) => {
+            e.preventDefault();
+            const now = performance.now();
+            if (now - lastWheelTs.current < WHEEL_COOLDOWN) return;
+            if (modeRef.current !== 'idle') return;
+            lastWheelTs.current = now;
+
+            if (e.deltaY < 0) {
+                startRewind();
+            } else if (e.deltaY > 0) {
+                startFastForward();
+            }
         };
-        raf = requestAnimationFrame(smoothStep);
-        return () => cancelAnimationFrame(raf);
+        window.addEventListener('wheel', onWheel, { passive: false });
+        return () => window.removeEventListener('wheel', onWheel);
+    }, [startFastForward, startRewind]);
+
+    useEffect(() => {
+        const id = setInterval(() => {
+            if (!videoRef.current) return;
+            setRemainingTime(
+                Math.max(videoRef.current.duration - videoRef.current.currentTime, 0)
+            );
+        }, 100);
+        return () => clearInterval(id);
     }, []);
 
-    useEffect(() => {
-        const v = videoRef.current;
-        if (!v) return;
-
-        const calcRemaining = () => {
-            const remainingVideoSeconds = Math.max(v.duration - v.currentTime, 0);
-            const real = remainingVideoSeconds / v.playbackRate;
-            setRealRemaining(real);
-        };
-
-        calcRemaining();
-        v.addEventListener('timeupdate', calcRemaining);
-        v.addEventListener('ratechange', calcRemaining);
-        return () => {
-            v.removeEventListener('timeupdate', calcRemaining);
-            v.removeEventListener('ratechange', calcRemaining);
-        };
-    }, [currentIndex]);
+    const handleEnded = useCallback(() => {
+        if (currentIndex < sortedVideos.length - 1) {
+            const next = currentIndex + 1;
+            setCurrentIndex(next);
+            setRemainingTime(sortedVideos[next].time);
+        }
+    }, [currentIndex, sortedVideos]);
 
     useEffect(() => {
-        const v = videoRef.current;
-        if (!v) return;
-        const next = () => {
-            if (currentIndex < sortedVideos.length - 1) {
-                setCurrentIndex((i) => i + 1);
-            }
-        };
-        v.addEventListener('ended', next);
-        return () => v.removeEventListener('ended', next);
-    }, [currentIndex, sortedVideos.length]);
-
-    useEffect(() => {
-        const v = videoRef.current;
-        if (!v) return;
-        v.load();
-        v.play();
-        v.playbackRate = 1;
-        targetRate.current = 1;
-    }, [currentIndex]);
-
-    useEffect(() => {
-        window.addEventListener('wheel', onWheel, { passive: true });
-        return () => window.removeEventListener('wheel', onWheel);
-    }, [onWheel]);
+        const vid = videoRef.current;
+        if (!vid) return;
+        clearAllTimers();
+        modeRef.current = 'idle';
+        vid.playbackRate = 1;
+        vid.load();
+        vid.play().catch(() => {});
+    }, [currentIndex, clearAllTimers]);
 
     return (
-        <div className="videos">
+        <div className="flex flex-col items-center gap-4">
             <video
                 ref={videoRef}
                 muted
                 autoPlay
-                playsInline
-                className="video"
+                onEnded={handleEnded}
+                className="max-w-full h-auto rounded-2xl shadow"
             >
                 <source
                     src={sortedVideos[currentIndex].video_path}
                     type="video/mp4"
                 />
             </video>
-
-            <div className="text-timer">
-                Осталось: {realRemaining.toFixed(1)} &nbsp;·&nbsp; скорость ×{
-                videoRef.current?.playbackRate.toFixed(2) ?? '1.00'
-            }
+            <div className="text-sm text-gray-700">
+                Осталось времени: {remainingTime.toFixed(1)} сек.
             </div>
         </div>
     );
