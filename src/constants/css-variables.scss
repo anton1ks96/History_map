@@ -1,0 +1,56 @@
+:root {
+  /* Цвета */
+  --color-background: #D9D9D9;
+  --color-container: #262626;
+  --color-border: #464646;
+  --color-panel-overlay: rgba(0, 0, 0, 0.2);
+  --color-border-light: rgba(255, 255, 255, 0.1);
+  --color-text-primary: #FFFFFF;
+  --color-accent: #87110B;
+  --color-button-bg: rgba(0, 0, 0, 0.10);
+  --color-button-border: #262626;
+  --color-overlay-dark: rgba(0, 0, 0, 0.15);
+  --color-shadow: rgba(0, 0, 0, 0.25);
+  --color-shadow-accent: rgba(135, 17, 11, 0.3);
+
+  /* Размеры */
+  --panel-height: 65px;
+  --container-padding: 20px;
+  --border-radius: 60px;
+  --border-radius-small: 16px;
+  --button-padding: 0 20px;
+  --button-font-size: 14px;
+  --gap-small: 10px;
+  --gap-medium: 15px;
+  --gap-large: 20px;
+  --spacing-tiny: 5px;
+  --spacing-small: 10px;
+  --spacing-medium: 20px;
+  --spacing-large: 40px;
+  --spacing-xlarge: 60px;
+
+  /* Тени */
+  --shadow-normal: 0px 4px 4px 0px rgba(0, 0, 0, 0.25);
+  --shadow-hover: 0 8px 16px rgba(135, 17, 11, 0.3);
+
+  /* Размытие */
+  --blur-effect: blur(39.6px);
+
+  /* Z-индексы */
+  --z-index-base: 1;
+  --z-index-above: 10;
+  --z-index-popup: 100;
+  --z-index-popup-active: 110;
+
+  /* Анимации */
+  --transition-duration: 0.3s;
+  --fill-animation-duration: 1.5s;
+  --fill-animation-easing: cubic-bezier(0.4, 0, 0.2, 1);
+  --expand-animation-duration: 0.4s;
+
+  /* Медиа точки */
+  --breakpoint-mobile: 480px;
+  --breakpoint-tablet: 768px;
+  --breakpoint-desktop: 1024px;
+}
+

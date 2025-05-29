@@ -1,0 +1,72 @@
+// СТАНДАРТНЫЕ СТИЛИ
+
+// Гибкое центрирование элементов
+@mixin flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+// Гибкое позиционирование элементов
+@mixin flex($direction: row, $align: center, $justify: flex-start, $gap: 0) {
+  display: flex;
+  flex-direction: $direction;
+  align-items: $align;
+  justify-content: $justify;
+  @if $gap != 0 {
+    gap: $gap;
+  }
+}
+
+// Абсолютное позиционирование
+@mixin absolute-position($top: auto, $right: auto, $bottom: auto, $left: auto) {
+  position: absolute;
+  top: $top;
+  right: $right;
+  bottom: $bottom;
+  left: $left;
+}
+
+// Эффект наведения для кнопок
+@mixin button-hover-effect {
+  transition: all var(--transition-duration) ease;
+  &:hover {
+    border-color: var(--color-accent);
+    box-shadow: var(--shadow-hover);
+  }
+}
+
+// Общий стиль для блоков с размытием фона
+@mixin glass-effect {
+  background: var(--color-button-bg);
+  backdrop-filter: var(--blur-effect);
+  -webkit-backdrop-filter: var(--blur-effect);
+  border-radius: var(--border-radius-small);
+}
+
+@mixin dropdown-container {
+  position: absolute;
+  background: var(--color-overlay-dark);
+  border-radius: var(--border-radius-small);
+  border: 2px solid var(--color-accent);
+  padding: var(--spacing-medium);
+  z-index: var(--z-index-popup);
+}
+
+@mixin mobile {
+  @media (max-width: var(--breakpoint-mobile)) {
+    @content;
+  }
+}
+
+@mixin tablet {
+  @media (min-width: var(--breakpoint-mobile)) and (max-width: var(--breakpoint-tablet)) {
+    @content;
+  }
+}
+
+@mixin desktop {
+  @media (min-width: var(--breakpoint-tablet)) {
+    @content;
+  }
+}
