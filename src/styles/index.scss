@@ -1,6 +1,9 @@
 @use '../constants/css-variables.scss' as *;
 @use './fonts.scss';
 @use './components.scss';
+@use './info-content.scss';
+@use './info-button.scss';
+@use './videoPlayer.scss';
 
 * {
   margin: 0;

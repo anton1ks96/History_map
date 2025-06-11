@@ -1,35 +1,37 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import StudentCard from './StudentCard';
+import { hasAdditionalContent } from '../../data/steps.jsx';
+import '../../styles/components.scss';
+import '../../styles/info-button.scss';
 
 const students = [
   {
-    avatar: '/assets/images/ilya-contact.jpg',
+    avatar: '/assets/media/ilya-contact.jpg',
     name: 'Илья Некрасов',
     role: 'Разработка дизайна',
     socialLink: 'https://t.me/NKSV_ILYA'
   },
   {
-    avatar: '/assets/images/ivan-contact.jpg',
+    avatar: '/assets/media/ivan-contact.jpg',
     name: 'Иван Коломацкий',
     role: 'Разработка бизнес-логики',
     socialLink: 'https://t.me/IKolomatskii'
   },
   {
-    avatar: '/assets/images/artem-contact.jpg',
+    avatar: '/assets/media/artem-contact.jpg',
     name: 'Артём Джапаридзе',
     role: 'Профессиональный монтаж',
     socialLink: 'https://t.me/airsss993'
   }
 ];
 
-const InfoButton = () => {
+const InfoButton = ({ currentChapterId, onInfoButtonClick }) => {
   const [isHovered, setIsHovered] = useState(false);
   const menuRef = useRef(null);
   const buttonRef = useRef(null);
   const timeoutRef = useRef(null);
 
-  // Обработчики для наведения мыши с задержкой закрытия
   const handleMouseEnter = () => {
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
@@ -39,16 +41,13 @@ const InfoButton = () => {
   };
 
   const handleMouseLeave = () => {
-    // Задержка закрытия меню, чтобы пользователь успел переместить курсор на меню
     timeoutRef.current = setTimeout(() => {
       setIsHovered(false);
     }, 300);
   };
 
-  // Глобальный обработчик наведения на интерактивные элементы
   useEffect(() => {
     const handleGlobalMouseOver = (e) => {
-      // Проверяем, что элемент, на который навели, не входит в наш компонент
       if (
         isHovered &&
         buttonRef.current &&
@@ -57,17 +56,14 @@ const InfoButton = () => {
         !menuRef.current.contains(e.target) &&
         isInteractiveElement(e.target)
       ) {
-        // Если навели на другой интерактивный элемент - закрываем меню
         setIsHovered(false);
       }
     };
 
-    // Функция для определения интерактивных элементов
     const isInteractiveElement = (element) => {
       const interactiveTags = ['BUTTON', 'A', 'INPUT', 'SELECT', 'TEXTAREA'];
       const interactiveClasses = ['control-button', 'interactive', 'clickable'];
 
-      // Проверяем по тегу или по классу
       return (
         interactiveTags.includes(element.tagName) ||
         interactiveClasses.some(className =>
@@ -78,10 +74,8 @@ const InfoButton = () => {
       );
     };
 
-    // Добавляем обработчик
     document.addEventListener('mouseover', handleGlobalMouseOver);
 
-    // Удаляем обработчик при размонтировании
     return () => {
       document.removeEventListener('mouseover', handleGlobalMouseOver);
       if (timeoutRef.current) {
@@ -90,7 +84,6 @@ const InfoButton = () => {
     };
   }, [isHovered]);
 
-  // Очистка таймера при размонтировании компонента
   useEffect(() => {
     return () => {
       if (timeoutRef.current) {
@@ -99,7 +92,6 @@ const InfoButton = () => {
     };
   }, []);
 
-  // Варианты анимации для меню
   const menuVariants = {
     hidden: {
       opacity: 0,
@@ -130,7 +122,6 @@ const InfoButton = () => {
     }
   };
 
-  // Анимация для контейнера карточек
   const contentVariants = {
     hidden: { opacity: 0 },
     visible: {
@@ -152,7 +143,6 @@ const InfoButton = () => {
     }
   };
 
-  // Анимация для отдельных элементов
   const itemVariants = {
     hidden: {
       opacity: 0,
@@ -176,6 +166,9 @@ const InfoButton = () => {
     }
   };
 
+  // Показать кнопку открытия информационного контента, если есть дополнительная информация
+  const hasAdditional = currentChapterId && hasAdditionalContent(currentChapterId);
+
   return (
     <div
       className="info-button-container"
@@ -190,10 +183,16 @@ const InfoButton = () => {
           marginRight: 'var(--spacing-medium)',
           zIndex: isHovered ? 'var(--z-index-popup-active)' : 'var(--z-index-popup)',
         }}
+        onClick={() => {
+          if (hasAdditional && onInfoButtonClick) {
+            onInfoButtonClick(currentChapterId);
+          }
+        }}
+        aria-label="Информация"
       >
         <div className="button-content">
           <img
-            src="/assets/vectors/Info.svg"
+            src="/assets/ui/icons/Info.svg"
             alt="Информация"
             className="button-icon"
           />
@@ -261,3 +260,6 @@ const InfoButton = () => {
 };
 
 export default InfoButton;
+
+
+
