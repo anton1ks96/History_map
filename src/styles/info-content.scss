@@ -1,212 +1,340 @@
 @use '../constants/css-variables.scss' as *;
 @use './mixins.scss' as *;
 
-.info-content {
+/* Контейнер для информационных панелей */
+.info-content-container {
   position: absolute;
   top: 0;
+  left: 0;
+  right: 0;
   bottom: 0;
-  width: 40%;
-  max-width: 500px;
-  height: 100%;
-  background-color: var(--color-panel-overlay);
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
-  overflow-y: auto;
-  backdrop-filter: var(--blur-effect);
-  z-index: calc(var(--z-index-above) + 1);
+  z-index: var(--z-index-above);
+  pointer-events: none;
 }
 
+/* Общие стили для информационных панелей */
+.info-content {
+  position: absolute;
+  width: 450px;
+  height: 70%;
+  max-height: calc(100% - 150px);
+  top: 80px; /* Под верхней панелью */
+  background-color: var(--color-container);
+  border: 1px solid var(--color-border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  overflow: hidden;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Стили для разных типов панелей */
 .info-popup {
   right: 0;
+  border-radius: 16px 0 0 16px;
 }
 
 .interactive-map {
   left: 0;
+  border-radius: 0 16px 16px 0;
 }
 
-.info-content-wrapper {
-  padding: 2rem;
-}
-
-.info-header {
+/* Заголовок панели */
+.info-header,
+.info-map-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 1.5rem;
+  padding: 16px 20px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--color-border-light);
+
+  h2 {
+    font-family: 'OpenRunde-Bold', sans-serif;
+    font-size: 22px;
+    color: var(--color-text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+
+    &::before {
+      content: '';
+      width: 3px;
+      height: 20px;
+      background-color: var(--color-accent);
+      margin-right: 10px;
+      border-radius: 2px;
+    }
+  }
 }
 
-.info-title {
-  font-size: 2.2rem;
-  color: var(--color-text-primary);
-}
-
+/* Кнопка закрытия */
 .info-close-button {
-  cursor: pointer;
-  background: transparent;
-  border: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-button-bg);
+  border: 1px solid var(--color-border-light);
   color: var(--color-text-primary);
-  font-size: 1.5rem;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.3s ease;
+
+  &:hover {
+    background-color: var(--color-accent);
+    transform: rotate(90deg);
+  }
+
+  span {
+    display: block;
+    line-height: 1;
+  }
 }
 
+/* Контент панелей */
+.info-content-wrapper,
+.map-content-wrapper {
+  flex: 1;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Текстовое содержимое */
 .info-content-body {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+
+  &::-webkit-scrollbar {
+    width: 6px;
+  }
+
+  &::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 3px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: var(--color-accent);
+    border-radius: 3px;
+  }
+}
+
+/* Стили для текстовых элементов */
+.info-popup-paragraph {
+  font-size: 15px;
   line-height: 1.6;
   color: var(--color-text-primary);
-}
-
-/* Увеличиваем размер шрифта в информационном попапе */
-.info-popup-paragraph {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  color: var(--color-text-primary);
+  margin-bottom: 15px;
 }
 
 .info-popup-list {
-  font-size: 1.2rem;
-  margin-left: 1.5rem;
-  margin-bottom: 1rem;
+  font-size: 15px;
+  margin-left: 20px;
+  margin-bottom: 15px;
+  line-height: 1.6;
 
   li {
-    margin-bottom: 0.5rem;
+    margin-bottom: 8px;
     color: var(--color-text-primary);
+
+    &::marker {
+      color: var(--color-accent);
+    }
   }
 }
 
+/* Изображения */
 .info-popup-image-container {
-  margin: 1.5rem 0;
+  margin: 15px 0;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
 
   img {
     width: 100%;
+    display: block;
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
   }
 }
 
-/* Улучшение стилей для интерактивной карты */
+/* Стили для карты */
+.map-description {
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-text-primary);
+  margin: 0;
+  padding: 20px 20px 0;
+}
+
 .map-container {
-  position: relative;
-  margin: 1rem 0;
-  transition: transform 0.3s ease;
-  transform-origin: center;
-  width: 100%;
-  overflow: hidden;
+  flex: 1;
+  margin: 20px;
   border-radius: 8px;
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border-light);
+  position: relative;
+}
+
+.map-image-wrapper {
+  position: relative;
+  width: 100%;
+  height: 100%;
 }
 
 .map-image {
   width: 100%;
+  height: 100%;
+  object-fit: cover;
   display: block;
+}
+
+/* Точки на карте */
+.map-points {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
 }
 
 .map-point {
   position: absolute;
-  width: 16px;
-  height: 16px;
-  background-color: var(--color-accent);
-  border-radius: 50%;
+  width: 24px;
+  height: 24px;
   transform: translate(-50%, -50%);
   cursor: pointer;
-  box-shadow: 0 0 0 4px rgba(255, 255, 255, 0.3);
-  transition: all 0.2s ease;
+  z-index: 2;
+}
 
-  &:hover, &.active {
+.point-marker {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background-color: var(--color-accent);
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+
+  .map-point:hover &,
+  .map-point.active & {
     transform: translate(-50%, -50%) scale(1.3);
-    box-shadow: 0 0 0 6px rgba(255, 255, 255, 0.5);
+    box-shadow: 0 0 0 5px rgba(255, 255, 255, 0.3);
   }
 }
 
-.map-description {
-  font-size: 1.2rem;
-  margin-bottom: 1rem;
-  color: var(--color-text-primary);
+/* Пульсация для точек */
+.point-pulse {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 10px;
+  height: 10px;
+  background-color: var(--color-accent);
+  border-radius: 50%;
+  opacity: 0.6;
+  z-index: -1;
+  animation: pulse 2s infinite;
+
+  .map-point.active & {
+    animation: pulse 1.5s infinite;
+  }
 }
 
-.point-details {
-  margin-top: 1.5rem;
-  padding: 1rem;
-  background-color: rgba(255, 255, 255, 0.1);
+@keyframes pulse {
+  0% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 0.6;
+  }
+  70% {
+    transform: translate(-50%, -50%) scale(2);
+    opacity: 0;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.5);
+    opacity: 0;
+  }
+}
+
+/* Информация о точке */
+.point-info {
+  position: absolute;
+  bottom: calc(100% + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  width: 200px;
+  background-color: var(--color-container);
   border-radius: 8px;
+  padding: 12px;
+  z-index: 5;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--color-border);
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    transform: translateX(-50%);
+    border-left: 8px solid transparent;
+    border-right: 8px solid transparent;
+    border-top: 8px solid var(--color-container);
+  }
 
   h3 {
-    font-size: 1.4rem;
-    margin-bottom: 0.5rem;
+    font-size: 14px;
+    margin: 0 0 8px;
     color: var(--color-text-primary);
   }
 
   p {
-    font-size: 1.1rem;
+    font-size: 12px;
+    margin: 0;
     color: var(--color-text-primary);
+    line-height: 1.4;
   }
 }
 
+/* Кнопки масштабирования */
 .map-controls {
+  position: absolute;
+  bottom: 15px;
+  right: 15px;
   display: flex;
-  justify-content: space-between;
-  margin-top: 1rem;
-
-  button {
-    padding: 0.5rem 1rem;
-    background-color: var(--color-accent);
-    color: white;
-    border: none;
-    border-radius: 4px;
-    cursor: pointer;
-    transition: background-color 0.2s;
-
-    &:hover {
-      background-color: var(--color-accent-hover);
-    }
-  }
-
-  .zoom-button {
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.5rem;
-  }
+  flex-direction: column;
+  gap: 8px;
+  z-index: 10;
 }
 
-/* Стили для документов */
-.document {
-  background-color: rgba(255, 255, 255, 0.1);
-  border-radius: 8px;
-  padding: 1rem;
-  margin: 1rem 0;
-  transition: transform 0.2s;
+.map-zoom-button {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  background-color: var(--color-container);
+  color: var(--color-text-primary);
+  border: 1px solid var(--color-border-light);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+  transition: all 0.2s ease;
 
   &:hover {
-    transform: translateY(-3px);
-  }
-
-  .document-title {
-    font-size: 1.3rem;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
-    color: var(--color-text-primary);
-  }
-
-  .document-description {
-    font-size: 1.1rem;
-    margin-bottom: 1rem;
-    color: var(--color-text-primary);
-  }
-
-  .document-link {
-    display: inline-block;
-    padding: 0.5rem 1rem;
     background-color: var(--color-accent);
-    color: white;
-    text-decoration: none;
-    border-radius: 4px;
-    transition: background-color 0.2s;
+  }
 
-    &:hover {
-      background-color: var(--color-accent-hover);
-    }
+  span {
+    line-height: 1;
   }
 }
-
-
-
-

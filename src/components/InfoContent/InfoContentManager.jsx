@@ -1,28 +1,33 @@
 import React from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import InfoPopup from './InfoPopup';
 import InteractiveMap from './InteractiveMap';
+import '../../styles/info-content.scss';
 
 const InfoContentManager = ({ type, chapterId, onClose }) => {
-  if (!type || !chapterId) return null;
+  if (!chapterId) return null;
+
+  const contentKey = `${type}-${chapterId}`;
 
   return (
-    <AnimatePresence mode="wait">
-      {type === 'map' && (
-        <InteractiveMap
-          key="map"
-          chapterId={chapterId}
-          onClose={onClose}
-        />
-      )}
-      {type === 'info' && (
-        <InfoPopup
-          key="info"
-          chapterId={chapterId}
-          onClose={onClose}
-        />
-      )}
-    </AnimatePresence>
+    <div className="info-content-container">
+      <AnimatePresence mode="wait">
+        {type === 'map' && (
+          <InteractiveMap
+            key={contentKey}
+            chapterId={chapterId}
+            onClose={onClose}
+          />
+        )}
+        {type === 'info' && (
+          <InfoPopup
+            key={contentKey}
+            chapterId={chapterId}
+            onClose={onClose}
+          />
+        )}
+      </AnimatePresence>
+    </div>
   );
 };
 

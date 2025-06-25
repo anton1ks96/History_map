@@ -163,7 +163,7 @@ const SettingsButton = () => {
       <div className="button-content">
           <img
             src="/assets/ui/icons/settings.svg"
-            alt="Настройки"
+            alt="����астройки"
             className="button-icon"
           />
           <span>Настройки</span>
@@ -181,6 +181,12 @@ const SettingsButton = () => {
             exit="exit"
             onMouseEnter={handleMouseEnter}
             onMouseLeave={handleMouseLeave}
+            style={{
+              position: 'absolute',
+              top: '100%',
+              left: 0,
+              zIndex: 'var(--z-index-popup-active)'
+            }}
           >
             <div className="dropdown-pointer"></div>
 

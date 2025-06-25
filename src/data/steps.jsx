@@ -16,7 +16,7 @@ const steps = [
     ],
     keywords: ["начало", "введение", "история"],
     infoContent: {
-      hasMap: true,
+      hasMap: false,
       hasInfo: true
     }
   },
@@ -40,16 +40,35 @@ const steps = [
     }
   },
   {
+    id: "interactiveMap",
+    title: "Интерактивная карта",
+    description: "Интерактивная карта обсуждаемого эпизода",
+    videoId: null,
+    transitionType: "map",
+    markers: [],
+    keywords: [],
+    infoContent: {
+      hasMap: false,
+      hasInfo: true
+    }
+  },
+  {
     id: "chapter3",
     title: "Глава 3",
-    description: "Продолжение истории",
-    videoId: "chapter3",
-    transitionType: "crossfade",
-    markers: [],
-    keywords: ["продолжение", "история", "детали"],
+    description: "Кульминация событий",
+    videoId: "mapBase",
+    transitionType: "zoom",
+    markers: [
+      {
+        time: 20,
+        title: "Кульминация",
+        description: "Кульминационный момент всей истории"
+      }
+    ],
+    keywords: ["кульминация", "пик", "важно"],
     infoContent: {
-      hasMap: true,
-      hasInfo: false
+      hasMap: false,
+      hasInfo: true
     }
   },
   {
@@ -72,16 +91,29 @@ const steps = [
     }
   },
   {
-    id: "chapter5",
-    title: "Глава 5",
-    description: "Развязка сюжета",
-    videoId: "chapter5",
-    transitionType: "slide",
+    id: "chapter5_1",
+    title: "Глава 5 (Часть 1)",
+    description: "Начало развязки сюжета",
+    videoId: null,
+    transitionType: "article",
     markers: [],
-    keywords: ["развязка", "итоги", "результаты"],
+    keywords: ["развязка", "итоги", "часть первая"],
     infoContent: {
       hasMap: false,
-      hasInfo: false
+      hasInfo: true
+    }
+  },
+  {
+    id: "chapter5_2",
+    title: "Глава 5 (Часть 2)",
+    description: "Продолжение развязки сюжета",
+    videoId: "chapter5_2",
+    transitionType: "slide",
+    markers: [],
+    keywords: ["развязка", "итоги", "часть вторая"],
+    infoContent: {
+      hasMap: false,
+      hasInfo: true
     }
   },
   {
@@ -100,38 +132,97 @@ const steps = [
     keywords: ["заключение", "финал", "конец"],
     infoContent: {
       hasMap: false,
-      hasInfo: false
+      hasInfo: true
+    }
+  },
+  {
+    id: "chapter7",
+    title: "Глава 7",
+    description: "Эпилог",
+    videoId: "chapter7",
+    transitionType: "fade",
+    markers: [],
+    keywords: ["эпилог", "итог", "завершение"],
+    infoContent: {
+      hasMap: true,
+      hasInfo: true
+    }
+  },
+  {
+    id: "artilleryCounter",
+    title: "Контрбатарейная борьба",
+    description: "Демонстрация контрбатарейной борьбы",
+    videoId: "artilleryCounter",
+    transitionType: "fade",
+    markers: [],
+    keywords: ["артиллерия", "контрбатарейная", "военная тактика"],
+    infoContent: {
+      hasMap: false,
+      hasInfo: true
+    }
+  },
+  {
+    id: "heavyArtillery",
+    title: "Тяжелая артиллерия",
+    description: "Действие тяжелой артиллерии",
+    videoId: "heavyArtillery",
+    transitionType: "fade",
+    markers: [],
+    keywords: ["артиллерия", "тяжелая", "военная техника"],
+    infoContent: {
+      hasMap: false,
+      hasInfo: true
+    }
+  },
+  {
+    id: "infantry",
+    title: "Пехота",
+    description: "Действия пехотных подразделений",
+    videoId: "infantry",
+    transitionType: "fade",
+    markers: [],
+    keywords: ["пехота", "солдаты", "боевые действия"],
+    infoContent: {
+      hasMap: false,
+      hasInfo: true
     }
   }
 ];
 
-export const getStepById = (id) => steps.find(step => step.id === id);
 
-export const getStepByIndex = (index) => steps[index] || null;
+export function getStepById(id) {
+  return steps.find(step => step.id === id);
+}
 
-export const getNextStep = (currentId) => {
+export function getStepByIndex(index) {
+  return steps[index];
+}
+
+export function getNextStep(currentId) {
   const currentIndex = steps.findIndex(step => step.id === currentId);
-  if (currentIndex === -1 || currentIndex === steps.length - 1) return null;
+  if (currentIndex === -1 || currentIndex === steps.length - 1) {
+    return null;
+  }
   return steps[currentIndex + 1];
-};
+}
 
-export const getPrevStep = (currentId) => {
+export function getPrevStep(currentId) {
   const currentIndex = steps.findIndex(step => step.id === currentId);
-  if (currentIndex <= 0) return null;
+  if (currentIndex <= 0) {
+    return null;
+  }
   return steps[currentIndex - 1];
-};
+}
 
-export const hasAdditionalContent = (id) => {
+export function getAllSteps() {
+  return steps;
+}
+
+export function hasAdditionalContent(id) {
   const step = getStepById(id);
-  return step && (step.infoContent.hasMap || step.infoContent.hasInfo);
-};
+  if (!step) return false;
+
+  return step.infoContent && (step.infoContent.hasMap || step.infoContent.hasInfo);
+}
 
 export default steps;
-
-export const stepsMap = steps.reduce((acc, step) => {
-  acc[step.id] = step;
-  return acc;
-}, {});
-
-export const totalSteps = steps.length;
-

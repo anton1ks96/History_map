@@ -1,6 +1,8 @@
 import React, { Component } from 'react';
-import { getStepById, getNextStep, getPrevStep, getStepByIndex } from '../../data/steps.jsx';
+import { getNextStep, getPrevStep, getStepByIndex, getStepById, getAllSteps } from '../../data/steps.jsx';
 import '../../styles/videoPlayer.scss';
+import InteractiveMapStage from './InteractiveMapStage';
+import ArticleStage from './ArticleStage';
 
 const FAST_RATE = 3;
 const NORMAL_RATE = 1;
@@ -18,10 +20,12 @@ class VideoPlayer extends Component {
       chapterIndex: 0,
       isScrollLocked: false,
       transitionState: 'idle',
-      remainingTime: 0
+      remainingTime: 0,
+      activeVideo: 'main',
     };
 
     this.videoRef = React.createRef();
+    this.reversedVideoRef = React.createRef();
     this.containerRef = React.createRef();
 
     this.rateAnimationId = null;
@@ -35,6 +39,7 @@ class VideoPlayer extends Component {
     this.goToPrevChapter = this.goToPrevChapter.bind(this);
     this.animatePlaybackRate = this.animatePlaybackRate.bind(this);
     this.clearTimers = this.clearTimers.bind(this);
+    this.loadReversedVideo = this.loadReversedVideo.bind(this);
   }
 
   componentDidMount() {
@@ -51,7 +56,6 @@ class VideoPlayer extends Component {
       video.addEventListener('timeupdate', this.handleTimeUpdate);
     }
 
-    // Уведомляем родительский компонент о текущей главе
     if (this.props.onChapterChange) {
       this.props.onChapterChange(this.state.currentChapter.id);
     }
@@ -66,27 +70,47 @@ class VideoPlayer extends Component {
 
       this.setState({ transitionState: 'loading' });
 
-      video.src = `/assets/videos/${this.state.currentChapter.videoId}.mp4`;
+      const tempVideo = document.createElement('video');
+      tempVideo.src = `/assets/videos/${this.state.currentChapter.videoId}.mp4`;
+      tempVideo.muted = true;
+      tempVideo.preload = 'auto';
+      tempVideo.style.display = 'none';
+      document.body.appendChild(tempVideo);
 
-      const handleLoaded = () => {
-        console.log("Видео загружено");
+      tempVideo.addEventListener('canplaythrough', () => {
+        console.log("Видео предзагружено, устанавливаем источник основного видео");
 
-        video.playbackRate = NORMAL_RATE;
-        video.currentTime = 0;
+        const originalOpacity = video.style.opacity || 1;
 
-        this.setState({ remainingTime: video.duration - video.currentTime });
+        video.style.opacity = 0;
+        video.src = `/assets/videos/${this.state.currentChapter.videoId}.mp4`;
 
-        setTimeout(() => {
+        video.addEventListener('loadeddata', () => {
+          console.log("Видео загружено и готово к воспроизведению");
+
+          video.playbackRate = NORMAL_RATE;
+          video.currentTime = 0;
+
           video.play()
-            .then(() => console.log("Воспроизведение успешно запущено"))
+            .then(() => {
+              console.log("Воспроизведение запущено, выполняем плавный переход");
+              video.style.transition = `opacity 500ms`;
+              video.style.opacity = originalOpacity;
+
+              this.setState({
+                transitionState: 'idle',
+                remainingTime: video.duration - video.currentTime
+              });
+
+              this.loadReversedVideo();
+            })
             .catch(err => console.error('Ошибка воспроизведения:', err));
-        }, 50);
 
-        this.setState({ transitionState: 'idle' });
-        video.removeEventListener('loadedmetadata', handleLoaded);
-      };
+          document.body.removeChild(tempVideo);
+        }, { once: true });
+      }, { once: true });
 
-      video.addEventListener('loadedmetadata', handleLoaded);
+      tempVideo.load();
     }
   }
 
@@ -114,6 +138,8 @@ class VideoPlayer extends Component {
     if (video) {
       this.setState({ remainingTime: video.duration });
       video.play().catch(err => console.error('Ошибка воспроизведения:', err));
+
+      this.loadReversedVideo();
     }
   };
 
@@ -124,6 +150,10 @@ class VideoPlayer extends Component {
       this.setState({
         currentChapter: nextChapter,
         chapterIndex: this.state.chapterIndex + 1
+      }, () => {
+        if (this.props.onChapterChange) {
+          this.props.onChapterChange(nextChapter.id);
+        }
       });
     }
   };
@@ -157,8 +187,17 @@ class VideoPlayer extends Component {
     }
   }
 
-  animatePlaybackRate(from, to, duration, onComplete) {
-    const video = this.videoRef.current;
+  animatePlaybackRate(from, to, duration, onComplete, targetVideo = 'current') {
+    let video;
+    if (targetVideo === 'main') {
+      video = this.videoRef.current;
+    } else if (targetVideo === 'reversed') {
+      video = this.reversedVideoRef.current;
+    } else {
+      video = this.state.activeVideo === 'main' ?
+        this.videoRef.current : this.reversedVideoRef.current;
+    }
+
     if (!video) return;
 
     if (this.rateAnimationId) {
@@ -166,7 +205,6 @@ class VideoPlayer extends Component {
     }
 
     const startTime = performance.now();
-
     const easeInOut = t => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t;
 
     const animate = (timestamp) => {
@@ -201,6 +239,19 @@ class VideoPlayer extends Component {
       clearTimeout(this.transitionTimerId);
       this.transitionTimerId = null;
     }
+  }
+
+  loadReversedVideo() {
+    const mainVideo = this.videoRef.current;
+    const reversedVideo = this.reversedVideoRef.current;
+
+    if (!mainVideo || !reversedVideo) return;
+
+    const reversedSrc = `/assets/videos_reversed/${this.state.currentChapter.videoId}.mp4`;
+    console.log(`Предзагрузка реверсивного видео: ${reversedSrc}`);
+
+    reversedVideo.src = reversedSrc;
+    reversedVideo.load();
   }
 
   goToNextChapter() {
@@ -238,6 +289,10 @@ class VideoPlayer extends Component {
                 currentChapter: nextChapter,
                 chapterIndex: this.state.chapterIndex + 1,
                 transitionState: 'loading'
+              }, () => {
+                if (this.props.onChapterChange) {
+                  this.props.onChapterChange(nextChapter.id);
+                }
               });
             });
           }, timeBeforeSlow);
@@ -247,6 +302,10 @@ class VideoPlayer extends Component {
               currentChapter: nextChapter,
               chapterIndex: this.state.chapterIndex + 1,
               transitionState: 'loading'
+            }, () => {
+              if (this.props.onChapterChange) {
+                this.props.onChapterChange(nextChapter.id);
+              }
             });
           });
         }
@@ -259,13 +318,15 @@ class VideoPlayer extends Component {
   }
 
   goToPrevChapter() {
-    const video = this.videoRef.current;
-    if (!video) return;
+    const mainVideo = this.videoRef.current;
+    const reversedVideo = this.reversedVideoRef.current;
+
+    if (!mainVideo || !reversedVideo) return;
 
     const prevChapter = getPrevStep(this.state.currentChapter.id);
-    if (!prevChapter) return;
+    const isFirstChapter = !prevChapter;
 
-    console.log(`Переход к предыдущей главе: ${prevChapter.id}`);
+    console.log(`Переход назад ${isFirstChapter ? "(первая глава - возврат к началу)" : "к предыдущей главе"}`);
 
     this.setState({
       isScrollLocked: true,
@@ -274,34 +335,131 @@ class VideoPlayer extends Component {
 
     this.clearTimers();
 
-    const currentTime = video.currentTime;
+    const currentTime = mainVideo.currentTime;
 
-    if (currentTime < 2) {
+    if (currentTime < 2 && !isFirstChapter) {
       this.setState({
         currentChapter: prevChapter,
         chapterIndex: this.state.chapterIndex - 1
-      });
-    } else {
-      video.pause();
-
-      const stepsToBeginning = Math.min(20, Math.floor(currentTime * 10));
-      const stepTime = currentTime / stepsToBeginning;
-      let step = 0;
-
-      const rewindInterval = setInterval(() => {
-        if (step >= stepsToBeginning) {
-          clearInterval(rewindInterval);
-          this.setState({
-            currentChapter: prevChapter,
-            chapterIndex: this.state.chapterIndex - 1
-          });
-          return;
+      }, () => {
+        if (this.props.onChapterChange) {
+          this.props.onChapterChange(prevChapter.id);
         }
+      });
 
-        step++;
-        video.currentTime = Math.max(0, currentTime - step * stepTime);
-      }, 50);
+      this.scrollLockTimerId = setTimeout(() => {
+        this.setState({ isScrollLocked: false });
+      }, SCROLL_COOLDOWN);
+
+      return;
     }
+
+    const timeFromEnd = mainVideo.duration - currentTime;
+
+    console.log(`Текущее время: ${currentTime}, время от конца: ${timeFromEnd}`);
+
+    reversedVideo.currentTime = timeFromEnd;
+    reversedVideo.playbackRate = NORMAL_RATE;
+
+    mainVideo.pause();
+
+    this.setState({ activeVideo: 'reversed' }, () => {
+      this.animatePlaybackRate(NORMAL_RATE, FAST_RATE, RAMP_MS, () => {
+        reversedVideo.play()
+          .then(() => {
+            console.log("Воспроизведение реверсивного видео запущено");
+
+            const timeToEnd = reversedVideo.duration - timeFromEnd;
+            console.log(`Время до конца реверсивного видео: ${timeToEnd} сек`);
+
+            if (isFirstChapter) {
+              const transitionTime = Math.min(timeToEnd * 1000 / FAST_RATE, TRANSITION_DURATION);
+              const timeBeforeSlow = transitionTime - RAMP_MS;
+
+              if (timeBeforeSlow > 0) {
+                this.transitionTimerId = setTimeout(() => {
+                  this.animatePlaybackRate(FAST_RATE, NORMAL_RATE, RAMP_MS, () => {
+                    this.setState({
+                      activeVideo: 'main',
+                      transitionState: 'loading'
+                    }, () => {
+                      mainVideo.currentTime = 0;
+                      mainVideo.play()
+                        .then(() => {
+                          console.log("Возврат к началу текущей главы");
+                          this.setState({ transitionState: 'idle' });
+                        })
+                        .catch(err => console.error('Ошибка воспроизведения:', err));
+                    });
+                  }, 'reversed');
+                }, timeBeforeSlow);
+              } else {
+                this.animatePlaybackRate(FAST_RATE, NORMAL_RATE, RAMP_MS, () => {
+                  this.setState({
+                    activeVideo: 'main',
+                    transitionState: 'loading'
+                  }, () => {
+                    mainVideo.currentTime = 0;
+                    mainVideo.play()
+                      .then(() => {
+                        console.log("Возврат к началу текущей главы");
+                        this.setState({ transitionState: 'idle' });
+                      })
+                      .catch(err => console.error('Ошибка воспроизведения:', err));
+                  });
+                }, 'reversed');
+              }
+            } else if (timeToEnd < SKIP_TO_END_THRESHOLD) {
+              this.animatePlaybackRate(FAST_RATE, NORMAL_RATE, RAMP_MS, () => {
+                this.setState({
+                  currentChapter: prevChapter,
+                  chapterIndex: this.state.chapterIndex - 1,
+                  activeVideo: 'main',
+                  transitionState: 'idle'
+                }, () => {
+                  if (this.props.onChapterChange) {
+                    this.props.onChapterChange(prevChapter.id);
+                  }
+                });
+              }, 'reversed');
+            } else {
+              const transitionTime = Math.min(timeToEnd * 1000 / FAST_RATE, TRANSITION_DURATION);
+              const timeBeforeSlow = transitionTime - RAMP_MS;
+
+              if (timeBeforeSlow > 0) {
+                this.transitionTimerId = setTimeout(() => {
+                  this.animatePlaybackRate(FAST_RATE, NORMAL_RATE, RAMP_MS, () => {
+                    this.setState({
+                      currentChapter: prevChapter,
+                      chapterIndex: this.state.chapterIndex - 1,
+                      activeVideo: 'main',
+                      transitionState: 'loading'
+                    }, () => {
+                      if (this.props.onChapterChange) {
+                        this.props.onChapterChange(prevChapter.id);
+                      }
+                    });
+                  }, 'reversed');
+                }, timeBeforeSlow);
+              } else {
+                this.animatePlaybackRate(FAST_RATE, NORMAL_RATE, RAMP_MS, () => {
+                  this.setState({
+                    currentChapter: prevChapter,
+                    chapterIndex: this.state.chapterIndex - 1,
+                    activeVideo: 'main',
+                    transitionState: 'loading'
+                  }, () => {
+                    if (this.props.onChapterChange) {
+                      this.props.onChapterChange(prevChapter.id);
+                    }
+                  });
+                }, 'reversed');
+              }
+            }
+          })
+          .catch(err => console.error('Ошибка воспроизведения реверсивного видео:', err));
+      }, 'reversed');
+    });
 
     this.scrollLockTimerId = setTimeout(() => {
       this.setState({ isScrollLocked: false });
@@ -310,21 +468,199 @@ class VideoPlayer extends Component {
 
   updateCurrentChapter(chapter) {
     this.setState({ currentChapter: chapter }, () => {
-      // Уведомляем родительский компонент о смене главы
       if (this.props.onChapterChange) {
         this.props.onChapterChange(chapter.id);
       }
     });
   }
 
+  fadeInVideo(videoElement, duration) {
+    videoElement.style.transition = `opacity ${duration}ms`;
+    videoElement.style.opacity = 1;
+  }
+
+  crossFadeVideos(fromVideo, toVideo, duration = 500) {
+    if (!fromVideo || !toVideo) return;
+
+    fromVideo.style.transition = `opacity ${duration}ms`;
+    toVideo.style.transition = `opacity ${duration}ms`;
+
+    const playPromise = toVideo.play();
+
+    if (playPromise !== undefined) {
+      playPromise
+        .then(() => {
+          fromVideo.style.opacity = 0;
+          toVideo.style.opacity = 1;
+
+          setTimeout(() => {
+            fromVideo.pause();
+          }, duration);
+        })
+        .catch(err => console.error('Ошибка воспроизведения при crossfade:', err));
+    }
+  }
+
+  // Метод для внешнего переключения глав
+  changeChapter = (chapterId) => {
+    console.log(`Переключение на главу ${chapterId} по клику на таймлайне`);
+
+    // Ищем главу по ID напрямую через getStepById
+    const nextStep = getStepById(chapterId);
+
+    if (nextStep) {
+      // Находим индекс шага в массиве steps
+      const steps = getAllSteps();
+      const stepIndex = steps.findIndex(step => step.id === chapterId);
+
+      console.log(`Найдена глава: ${nextStep.title}, индекс: ${stepIndex}`);
+
+      this.setState({
+        currentChapter: nextStep,
+        chapterIndex: stepIndex >= 0 ? stepIndex : this.state.chapterIndex,
+        transitionState: 'loading'
+      });
+
+      // Вызываем коллбэк для обновления ID главы в родительском компоненте
+      if (this.props.onChapterChange) {
+        this.props.onChapterChange(nextStep.id);
+      }
+
+      return true;
+    }
+
+    console.warn(`Глава с ID ${chapterId} не найдена`);
+    return false;
+  }
+
   render() {
+    if (this.state.currentChapter.transitionType === 'map') {
+      const { currentChapter, chapterIndex } = this.state;
+      return (
+        <InteractiveMapStage
+          onNext={() => {
+            const next = getNextStep(currentChapter.id);
+            if (next) {
+              console.log(`Переход к следующей главе после карты: ${next.id}`);
+              this.setState({
+                currentChapter: next,
+                chapterIndex: chapterIndex + 1,
+                transitionState: 'loading'
+              }, () => {
+                if (this.props.onChapterChange) {
+                  this.props.onChapterChange(next.id);
+                }
+              });
+            }
+          }}
+          onPrev={() => {
+            const prev = getPrevStep(currentChapter.id);
+            if (prev) {
+              console.log(`Переход к предыдущей главе: ${prev.id}`);
+              this.setState({
+                currentChapter: prev,
+                chapterIndex: chapterIndex - 1,
+                transitionState: 'loading'
+              }, () => {
+                if (this.props.onChapterChange) {
+                  this.props.onChapterChange(prev.id);
+                }
+              });
+            }
+          }}
+        />
+      );
+    }
+
+    if (this.state.currentChapter.transitionType === 'article') {
+      const { currentChapter, chapterIndex } = this.state;
+      return (
+        <ArticleStage
+          chapterId={currentChapter.id}
+          onNext={() => {
+            const next = getNextStep(currentChapter.id);
+            if (next) {
+              console.log(`Переход к следующей главе после статьи: ${next.id}`);
+              this.setState({
+                currentChapter: next,
+                chapterIndex: chapterIndex + 1,
+                transitionState: 'loading'
+              }, () => {
+                if (this.props.onChapterChange) {
+                  this.props.onChapterChange(next.id);
+                }
+              });
+            }
+          }}
+          onPrev={() => {
+            const prev = getPrevStep(currentChapter.id);
+            if (prev) {
+              console.log(`Переход к предыдущей главе: ${prev.id}`);
+              this.setState({
+                currentChapter: prev,
+                chapterIndex: chapterIndex - 1,
+                transitionState: 'loading'
+              }, () => {
+                if (this.props.onChapterChange) {
+                  this.props.onChapterChange(prev.id);
+                }
+              });
+            }
+          }}
+        />
+      );
+    }
+
+    const mainVideoStyle = {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      zIndex: this.state.activeVideo === 'main' ? 2 : 1,
+      opacity: this.state.activeVideo === 'main' ? 1 : 0,
+      transition: 'opacity 500ms ease'
+    };
+
+    const reversedVideoStyle = {
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      width: '100%',
+      height: '100%',
+      objectFit: 'cover',
+      zIndex: this.state.activeVideo === 'reversed' ? 2 : 1,
+      opacity: this.state.activeVideo === 'reversed' ? 1 : 0,
+      transition: 'opacity 500ms ease'
+    };
+
     return (
       <div className="video-player-container" ref={this.containerRef}>
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          width: '100%',
+          height: '100%',
+          backgroundColor: 'black',
+          zIndex: 0
+        }} />
+
         <video
           ref={this.videoRef}
           className="main-video"
           playsInline
           muted
+          style={mainVideoStyle}
+        />
+
+        <video
+          ref={this.reversedVideoRef}
+          className="reversed-video"
+          playsInline
+          muted
+          style={reversedVideoStyle}
         />
 
         <div className="test-controls" style={{
@@ -374,10 +710,6 @@ class VideoPlayer extends Component {
           ))}
         </div>
 
-        <div className="chapter-title">
-          {this.state.currentChapter?.title}
-        </div>
-
         <div className="remaining-time" style={{ display: 'none' }}>
           {this.state.remainingTime.toFixed(1)} сек.
         </div>
@@ -387,3 +719,4 @@ class VideoPlayer extends Component {
 }
 
 export default VideoPlayer;
+

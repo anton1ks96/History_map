@@ -23,10 +23,8 @@ const StageManager = ({ onStateChange, onVideoChange }) => {
     fetch(videosJsonUrl)
       .then(response => response.json())
       .then(data => {
-        // Преобразуем пути к видео, чтобы они соответствовали реальной структуре
         const processedData = data.map(video => ({
           ...video,
-          // Убеждаемся, что путь к видео начинается с правильного префикса
           video_path: video.video_path.startsWith('/') ? video.video_path : `/${video.video_path}`
         }));
         setSortedVideos(processedData.sort((a, b) => a.priority - b.priority));
