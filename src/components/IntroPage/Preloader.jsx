@@ -9,20 +9,75 @@ const Preloader = () => {
   const [isAnimatingOut, setIsAnimatingOut] = useState(false);
   const [extraDelayComplete, setExtraDelayComplete] = useState(false); // Состояние для дополнительной задержки
 
-  const criticalResources = [
-    '/assets/branding/logo-square.png',
-    '/assets/branding/Logo.png',
+  const ALL_VIDEO_PATHS = [
+    '/assets/videos/chapter1.mp4',
+    '/assets/videos/chapter2.mp4',
+    '/assets/videos/chapter4.mp4',
+    '/assets/videos/chapter5_1.mp4',
+    '/assets/videos/chapter5_2.mp4',
+    '/assets/videos/chapter6.mp4',
+    '/assets/videos/chapter7.mp4',
+    '/assets/videos/heavyArtillery.mp4',
+    '/assets/videos/artilleryCounter.mp4',
+    '/assets/videos/infantry.mp4',
+    '/assets/videos/mapBase.mp4',
+    // реверс
+    '/assets/videos_reversed/chapter1.mp4',
+    '/assets/videos_reversed/chapter2.mp4',
+    '/assets/videos_reversed/chapter4.mp4',
+    '/assets/videos_reversed/chapter5_1.mp4',
+    '/assets/videos_reversed/chapter5_2.mp4',
+    '/assets/videos_reversed/chapter6.mp4',
+    '/assets/videos_reversed/chapter7.mp4',
+    '/assets/videos_reversed/heavyArtillery.mp4',
+    '/assets/videos_reversed/artilleryCounter.mp4',
+    '/assets/videos_reversed/infantry.mp4',
+    '/assets/videos_reversed/mapBase.mp4',
+  ];
+  const ALL_AUDIO_PATHS = [
+    '/assets/audio/ambient.mp3',
+    '/assets/audio/statistics.mp3',
+    '/assets/audio/dark-cinematic-suspenseful-ambient-111682.mp3',
+    '/assets/audio/ui-click.mp3',
+  ];
+  const ALL_ICON_PATHS = [
     '/assets/ui/icons/HideInterface.svg',
     '/assets/ui/icons/Info.svg',
+    '/assets/ui/icons/settings.svg',
   ];
-
-  const nonCriticalResources = [
+  const ALL_IMAGE_PATHS = [
+    '/assets/branding/logo-square.png',
+    '/assets/branding/Logo.png',
     '/assets/ui/background-noise.png',
     '/assets/media/artem-contact.jpg',
     '/assets/media/ilya-contact.jpg',
     '/assets/media/ivan-contact.jpg',
     '/assets/ui/click-btn.png',
     '/assets/ui/scroll-btn.png',
+    '/assets/ui/img.png',
+    '/assets/media/map_ch3.jpg',
+    '/assets/media/mapchhz.png',
+  ];
+
+  // Критические и некритические ресурсы для совместимости с текущей логикой
+  const criticalResources = [
+    '/assets/branding/logo-square.png',
+    '/assets/branding/Logo.png',
+    '/assets/ui/background-noise.png',
+  ];
+  const nonCriticalResources = [
+    '/assets/media/artem-contact.jpg',
+    '/assets/media/ilya-contact.jpg',
+    '/assets/media/ivan-contact.jpg',
+    '/assets/ui/click-btn.png',
+    '/assets/ui/scroll-btn.png',
+    '/assets/ui/img.png',
+    '/assets/media/map_ch3.jpg',
+    '/assets/media/mapchhz.png',
+    // иконки
+    '/assets/ui/icons/HideInterface.svg',
+    '/assets/ui/icons/Info.svg',
+    '/assets/ui/icons/settings.svg',
   ];
 
   useEffect(() => {

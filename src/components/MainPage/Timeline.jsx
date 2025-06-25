@@ -7,7 +7,7 @@ const chapterTooltipData = {
   "chapter3": { title: "Планирование операции", subtitle: "(Весна 1916 г.)" },
   "chapter4": { title: "Техника прорыва", subtitle: "(Весна 1916 г.)" },
   "chapter5_1": { title: "От прорыва к тупику", subtitle: "(июнь – июль 1916 г.)" },
-  "chapter5_2": { title: "Контрудары и «ковельская дыра»", subtitle: "(июнь? 1916 г.)" },
+  "chapter5_2": { title: "Контрудары", subtitle: "(июнь? 1916 г.)" },
   "chapter6": { title: "Остановка фронта и бл-то", subtitle: "(июль 1916 г.)" },
   "chapter7": { title: "Фронт застыл", subtitle: "(авг – сентябрь 1916 г.)" },
   "heavyArtillery": { title: "Тяжёлая артиллерия", subtitle: "(оружие прорыва)" },
@@ -127,6 +127,53 @@ const Timeline = ({ currentChapterId, onPointClick }) => {
       observer.disconnect();
     };
   }, [currentChapterId, prevChapterId, chaptersOrder, positionTooltipAtPoint]);
+
+  const ambientAudioRef = useRef(null);
+  const statisticsAudioRef = useRef(null);
+  const EXCLUDED_CHAPTERS = ["heavyArtillery", "artilleryCounter", "infantry"];
+  const [audioInitialized, setAudioInitialized] = useState(false);
+
+  useEffect(() => {
+    const initAudio = () => {
+      if (!ambientAudioRef.current) {
+        ambientAudioRef.current = new Audio('/assets/audio/ambient.mp3');
+        ambientAudioRef.current.loop = true;
+        ambientAudioRef.current.volume = 0.5;
+      }
+      if (!statisticsAudioRef.current) {
+        statisticsAudioRef.current = new Audio('/assets/audio/statistics.mp3');
+        statisticsAudioRef.current.loop = true;
+        statisticsAudioRef.current.volume = 0.5;
+      }
+      setAudioInitialized(true);
+      window.removeEventListener('pointerdown', initAudio);
+    };
+    window.addEventListener('pointerdown', initAudio);
+    return () => window.removeEventListener('pointerdown', initAudio);
+  }, []);
+
+  useEffect(() => {
+    if (!audioInitialized) return;
+    const ambient = ambientAudioRef.current;
+    const statistics = statisticsAudioRef.current;
+    if (!EXCLUDED_CHAPTERS.includes(currentChapterId)) {
+      if (statistics && !statistics.paused) {
+        statistics.pause();
+        statistics.currentTime = 0;
+      }
+      if (ambient && ambient.paused) {
+        ambient.play().catch(() => {});
+      }
+    } else {
+      if (ambient && !ambient.paused) {
+        ambient.pause();
+        ambient.currentTime = 0;
+      }
+      if (statistics && statistics.paused) {
+        statistics.play().catch(() => {});
+      }
+    }
+  }, [currentChapterId, audioInitialized]);
 
   const tooltipData = chapterTooltipData[currentChapterId] || { title: "Глава", subtitle: "(без описания)" };
 
